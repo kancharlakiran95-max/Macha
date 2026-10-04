@@ -1,0 +1,172 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+
+// ===============================
+// 1. FIREBASE CONFIG
+// ===============================
+// Firebase Console → Project Settings → Your Apps → Web App
+// akkada unna values ikkada paste cheyyali.
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+
+// Firebase start
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+// ===============================
+// 2. EMAILJS CONFIG
+// ===============================
+// EmailJS account create chesi ee 3 values paste cheyyali.
+
+const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
+const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+
+
+// EmailJS library load
+const emailScript = document.createElement("script");
+
+emailScript.src =
+  "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+
+emailScript.onload = function () {
+
+  emailjs.init({
+    publicKey: EMAILJS_PUBLIC_KEY
+  });
+
+};
+
+document.head.appendChild(emailScript);
+
+
+// ===============================
+// 3. FORM
+// ===============================
+
+const form = document.getElementById("orderForm");
+const status = document.getElementById("status");
+
+
+form.addEventListener("submit", async function (event) {
+
+  event.preventDefault();
+
+  status.innerText = "⏳ Order submitting...";
+
+
+  // Customer details
+  const order = {
+
+    name: document.getElementById("name").value.trim(),
+
+    phone: document.getElementById("phone").value.trim(),
+
+    size: document.getElementById("size").value,
+
+    quantity: Number(
+      document.getElementById("quantity").value
+    ),
+
+    location: document
+      .getElementById("location")
+      .value
+      .trim(),
+
+    address: document
+      .getElementById("address")
+      .value
+      .trim(),
+
+    details: document
+      .getElementById("details")
+      .value
+      .trim()
+
+  };
+
+
+  try {
+
+    // ===============================
+    // 4. FIREBASE LO SAVE
+    // ===============================
+
+    await addDoc(
+      collection(db, "orders"),
+      {
+        ...order,
+        createdAt: serverTimestamp()
+      }
+    );
+
+
+    // ===============================
+    // 5. GMAIL KI EMAIL
+    // ===============================
+
+    await emailjs.send(
+
+      EMAILJS_SERVICE_ID,
+
+      EMAILJS_TEMPLATE_ID,
+
+      {
+
+        // Nee email
+        to_email: "kancharlatharun618@gamil.com",
+
+        name: order.name,
+
+        phone: order.phone,
+
+        size: order.size,
+
+        quantity: order.quantity,
+
+        location: order.location,
+
+        address: order.address,
+
+        details: order.details
+
+      }
+
+    );
+
+
+    // Success
+    status.innerText =
+      "✅ Order submitted successfully!";
+
+    form.reset();
+
+    document.getElementById("quantity").value = 1;
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    status.innerText =
+      "❌ Order submit కాలేదు. Firebase / EmailJS settings check చేయండి.";
+
+  }
+
+});
